@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Return Radar - Tell us why you're returning</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">&#128225;</span>
+      <span>
+        Return Radar
+        <span class="tagline">Understand every return</span>
+      </span>
+    </div>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="{{ url_for('index') }}" aria-current="page">Questionnaire</a>
+      <a href="{{ url_for('dashboard') }}">Seller dashboard</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <h1>Help us improve your experience</h1>
+      <p class="lede">
+        Returning an item? Answer a few quick questions so the seller can make
+        things better. It takes less than a minute.
+      </p>
+    </section>
+
+    <!-- Step 1: category selection -->
+    <section class="card" id="category-step" aria-labelledby="category-heading">
+      <h2 class="section-title" id="category-heading">
+        First, what kind of product are you returning?
+      </h2>
+      <ul class="category-grid" role="list">
+        {% for cat in categories %}
+        <li>
+          <button
+            type="button"
+            class="category-btn"
+            data-category-id="{{ cat.id }}"
+            data-category-name="{{ cat.name }}"
+            aria-pressed="false"
+          >
+            <span class="cat-icon" aria-hidden="true">{{ cat.icon }}</span>
+            <span>{{ cat.name }}</span>
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- Step 2: adaptive questionnaire -->
+    <section
+      class="card question-shell hidden"
+      id="question-step"
+      aria-labelledby="question-step-heading"
+    >
+      <h2 class="visually-hidden" id="question-step-heading">
+        Return questionnaire
+      </h2>
+
+      <p class="progress" aria-hidden="true">
+        <span id="progress-text">Question 1</span>
+        <span class="progress-track">
+          <span class="progress-fill" id="progress-fill"></span>
+        </span>
+      </p>
+
+      <!-- Live region announces each new question to screen readers -->
+      <div id="question-container" aria-live="polite"></div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" id="restart-btn">
+          Start over
+        </button>
+        <button type="button" class="btn btn-primary" id="next-btn" disabled>
+          Next
+        </button>
+      </div>
+
+      <!-- Assertive region for validation / error messages -->
+      <p
+        id="form-status"
+        class="visually-hidden"
+        role="status"
+        aria-live="assertive"
+      ></p>
+    </section>
+
+    <!-- Step 3: completion -->
+    <section
+      class="card completion hidden"
+      id="done-step"
+      aria-labelledby="done-heading"
+      tabindex="-1"
+    >
+      <div class="check" aria-hidden="true">&#10003;</div>
+      <h2 id="done-heading">Thank you for your feedback</h2>
+      <p>Your response has been recorded and will help the seller improve.</p>
+      <div class="actions" style="justify-content: center;">
+        <button type="button" class="btn btn-primary" id="again-btn">
+          Submit another return
+        </button>
+        <a class="btn btn-ghost" href="{{ url_for('dashboard') }}">
+          View seller dashboard
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Return Radar &middot; Adaptive return feedback, built with Kiro
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

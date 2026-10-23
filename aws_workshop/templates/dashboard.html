@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Return Radar - Seller dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">&#128225;</span>
+      <span>
+        Return Radar
+        <span class="tagline">Understand every return</span>
+      </span>
+    </div>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="{{ url_for('index') }}">Questionnaire</a>
+      <a href="{{ url_for('dashboard') }}" aria-current="page">Seller dashboard</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <h1>Seller dashboard</h1>
+      <p class="lede">
+        A live view of why customers are returning products, grouped by
+        category so you can spot patterns and fix them.
+      </p>
+    </section>
+
+    <section aria-labelledby="summary-heading">
+      <h2 class="visually-hidden" id="summary-heading">Summary</h2>
+      <div class="stat-cards" id="stat-cards" aria-live="polite">
+        <!-- populated by dashboard.js -->
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="reasons-heading">
+      <h2 class="section-title" id="reasons-heading">
+        Top return reasons by category
+      </h2>
+      <div id="charts">
+        <p class="empty-state">Loading&hellip;</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="table-heading" style="margin-top: 1.4rem;">
+      <h2 class="section-title" id="table-heading">Recent submissions</h2>
+      <div id="submissions-table">
+        <p class="empty-state">Loading&hellip;</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Return Radar &middot; Adaptive return feedback, built with Kiro
+  </footer>
+
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
