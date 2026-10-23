@@ -234,6 +234,12 @@
     progressText.textContent = "Question " + current + " of " + total;
     progressFill.style.width = pct + "%";
 
+    // Drive the segment dividers to match the number of questions in the
+    // path so the bar reads as `total` discrete steps.
+    if (progressBar) {
+      progressBar.style.setProperty("--segments", String(total));
+    }
+
     // Expose progress to assistive tech on the progress bar element.
     if (progressBar) {
       progressBar.setAttribute("aria-valuenow", String(current));

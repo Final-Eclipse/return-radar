@@ -209,18 +209,39 @@ main {
   margin-bottom: 0.8rem;
 }
 .progress-track {
+  display: block;
+  position: relative;
   flex: 1;
-  height: 8px;
-  background: var(--surface-2);
+  height: 14px;
+  /* Dark, clearly-empty track so the filled portion stands out. */
+  background: #0b1220;
   border: 1px solid var(--border);
   border-radius: 999px;
   overflow: hidden;
 }
 .progress-fill {
+  display: block;
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--accent-strong), var(--accent));
   transition: width 0.3s ease;
+}
+/* Segment dividers: thin tick lines drawn over the track so the bar reads as
+   N discrete steps. --segments is set inline by the frontend to match the
+   number of questions. The lines are only a couple of px wide so they divide
+   the bar without tinting the empty portion. */
+.progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% / var(--segments, 4) - 2px),
+    rgba(0, 0, 0, 0.55) calc(100% / var(--segments, 4) - 2px),
+    rgba(0, 0, 0, 0.55) calc(100% / var(--segments, 4))
+  );
 }
 
 fieldset.question {
@@ -400,17 +421,45 @@ fieldset.question legend {
   color: var(--text);
 }
 .bar-track {
-  background: var(--surface-2);
+  display: block;
+  position: relative;
+  /* Dark, clearly-empty track so the filled portion is unmistakable. */
+  background: #0b1220;
   border: 1px solid var(--border);
   border-radius: 999px;
   height: 20px;
   overflow: hidden;
 }
 .bar-fill {
+  display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-strong), var(--accent));
   border-radius: 999px 0 0 999px;
   min-width: 2px;
+  transition: width 0.4s ease;
+}
+/* Segment dividers across data bars (fixed 10 segments = each tick is 10%),
+   so the bars read as a scale rather than one solid block. */
+.bar-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(10% - 1px),
+    rgba(15, 23, 36, 0.55) calc(10% - 1px),
+    rgba(15, 23, 36, 0.55) 10%
+  );
+}
+/* Comparison-bar fill variants also need to render as blocks. */
+.bar-fill-strong,
+.bar-fill-avg {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px 0 0 999px;
   transition: width 0.4s ease;
 }
 .bar-count {
