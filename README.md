@@ -55,20 +55,25 @@ python app.py
 ## Project Structure
 
 ```
-aws_workshop/
-├── app.py            # Flask app — all routes and startup
-├── questions.py      # Adaptive question engine + category definitions
-├── database.py       # SQLite schema and data-access layer
-├── seed.py           # Seeds sample submissions for demos
-├── requirements.txt
-├── templates/
-│   ├── index.html    # Customer questionnaire shell (3-step flow)
-│   └── dashboard.html
-├── static/
-│   ├── app.js        # Questionnaire frontend (category → questions → done)
-│   ├── dashboard.js  # Dashboard frontend (fetch /stats → render charts + table)
-│   └── style.css
-└── test_app.py       # pytest suite covering DB, engine, and endpoints
+return-radar/
+├── aws_workshop/
+│   ├── app.py            # Flask app — all routes and startup
+│   ├── questions.py      # Adaptive question engine + category definitions
+│   ├── database.py       # SQLite schema and data-access layer
+│   ├── seed.py           # Seeds sample submissions for demos
+│   ├── requirements.txt
+│   ├── return_radar.db   # SQLite database (created on first run)
+│   ├── README.md
+│   ├── templates/
+│   │   ├── index.html    # Customer questionnaire shell (3-step flow)
+│   │   └── dashboard.html
+│   ├── static/
+│   │   ├── app.js        # Questionnaire frontend (category → questions → done)
+│   │   ├── dashboard.js  # Dashboard frontend (fetch /stats → render charts + table)
+│   │   └── style.css
+│   └── test_app.py       # pytest suite covering DB, engine, and endpoints
+├── LICENSE
+└── README.md
 ```
 
 ---
