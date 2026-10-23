@@ -27,12 +27,20 @@ def temp_db():
 
 @pytest.fixture
 def client(temp_db, monkeypatch):
-    """Flask test client pointed at a temporary database."""
+    """Anonymous Flask test client pointed at a temporary database."""
     # Route the app's data layer at the temp DB by patching DB_PATH default.
     monkeypatch.setattr(database, "DB_PATH", temp_db)
     app_module.app.config["TESTING"] = True
     with app_module.app.test_client() as c:
         yield c
+
+
+@pytest.fixture
+def seller_client(client):
+    """Test client with an authenticated seller session."""
+    with client.session_transaction() as sess:
+        sess["is_seller"] = True
+    return client
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +133,42 @@ def test_unknown_category_raises():
         questions.get_next_question("nope", {})
 
 
+def test_progress_increases_toward_end():
+    cat = "clothing"
+    answers = {}
+
+    # First question: nothing answered yet.
+    first = questions.get_next_question(cat, answers)
+    assert first["progress"]["step"] == 0
+    assert first["progress"]["total"] >= 2
+    assert first["progress"]["percent"] == 0
+
+    # Answer the reason, taking the "fit" branch.
+    answers["reason"] = "fit"
+    second = questions.get_next_question(cat, answers)
+    p2 = second["progress"]
+    assert p2["step"] == 1
+    # Percent strictly increases as answers are given.
+    assert p2["percent"] > first["progress"]["percent"]
+
+    # Walk to completion; final progress should report 100%.
+    while True:
+        result = questions.get_next_question(cat, answers)
+        if result["done"]:
+            assert result["progress"]["percent"] == 100
+            assert result["progress"]["step"] == result["progress"]["total"]
+            break
+        q = result["question"]
+        answers[q["id"]] = q["options"][0]["value"]
+
+
+def test_next_question_endpoint_includes_progress(client):
+    resp = client.post("/next-question", json={"category": "clothing", "answers": {}})
+    data = resp.get_json()
+    assert "progress" in data
+    assert set(data["progress"]) == {"step", "total", "percent"}
+
+
 def test_summarize_and_records_use_labels():
     answers = {"reason": "fit", "fit_issue": "too_small"}
     assert questions.summarize_reason("clothing", answers) == "It didn't fit"
@@ -196,10 +240,139 @@ def test_submit_rejects_incomplete_flow(client):
     assert resp.status_code == 400
 
 
-def test_stats_endpoint_after_submission(client, temp_db):
+def test_stats_endpoint_after_submission(seller_client, temp_db):
     database.save_submission("Toys & Games", [], "Broken / defective", db_path=temp_db)
-    resp = client.get("/stats")
+    resp = seller_client.get("/stats")
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["total"] == 1
     assert data["by_category"]["Toys & Games"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Seller auth gating
+# ---------------------------------------------------------------------------
+def test_seller_pages_require_login(client):
+    # Pages redirect anonymous users to the login page.
+    for path in ("/dashboard", "/investigation"):
+        resp = client.get(path)
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+
+
+def test_seller_api_requires_login_returns_401(client):
+    for path in ("/stats", "/investigation-data"):
+        resp = client.get(path, headers={"Accept": "application/json"})
+        assert resp.status_code == 401
+
+
+def test_login_with_correct_password_grants_access(client, monkeypatch):
+    monkeypatch.setattr(app_module, "SELLER_PASSWORD", "seller123")
+    resp = client.post("/login", data={"password": "seller123"})
+    assert resp.status_code == 302  # redirect on success
+    # Now a protected page is reachable.
+    resp = client.get("/dashboard")
+    assert resp.status_code == 200
+
+
+def test_login_with_wrong_password_denied(client, monkeypatch):
+    monkeypatch.setattr(app_module, "SELLER_PASSWORD", "seller123")
+    resp = client.post("/login", data={"password": "nope"})
+    assert resp.status_code == 200  # re-renders the form
+    resp = client.get("/dashboard")
+    assert resp.status_code == 302  # still gated
+
+
+# ---------------------------------------------------------------------------
+# Products + product-tagged submissions
+# ---------------------------------------------------------------------------
+def test_products_endpoint_returns_category_products(client):
+    resp = client.get("/products?category=electronics")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data) >= 1
+    assert all(p["category"] == "electronics" for p in data)
+
+
+def test_submit_with_product_tags_submission(client, temp_db):
+    cat = "electronics"
+    answers = {}
+    for _ in range(12):
+        resp = client.post("/next-question", json={"category": cat, "answers": answers})
+        data = resp.get_json()
+        if data["done"]:
+            break
+        q = data["question"]
+        answers[q["id"]] = (
+            "defective" if q["id"] == "reason" else q["options"][0]["value"]
+        )
+
+    resp = client.post(
+        "/submit",
+        json={"category": cat, "product_id": "soundmax-x200", "answers": answers},
+    )
+    assert resp.status_code == 200
+    sid = resp.get_json()["submission_id"]
+    stored = database.get_submission(sid, db_path=temp_db)
+    assert stored["product_id"] == "soundmax-x200"
+    assert stored["product_model"] == "SoundMax X200 Headphones"
+
+
+def test_submit_rejects_product_category_mismatch(client):
+    # A clothing product cannot be submitted under electronics.
+    cat = "electronics"
+    answers = {}
+    for _ in range(12):
+        resp = client.post("/next-question", json={"category": cat, "answers": answers})
+        data = resp.get_json()
+        if data["done"]:
+            break
+        q = data["question"]
+        answers[q["id"]] = (
+            "defective" if q["id"] == "reason" else q["options"][0]["value"]
+        )
+    resp = client.post(
+        "/submit",
+        json={"category": cat, "product_id": "aurora-jacket", "answers": answers},
+    )
+    assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Issue investigation aggregation
+# ---------------------------------------------------------------------------
+def test_investigation_computes_defect_rate_and_comparison(seller_client, temp_db):
+    # Two returns against the SoundMax X200 (units_sold = 4200) for the same
+    # specific problem.
+    records = [
+        {"question_id": "reason", "question_text": "Why?", "answer_value": "Item is defective / not working"},
+        {"question_id": "defect_type", "question_text": "Defect?", "answer_value": "Won't power on"},
+    ]
+    for _ in range(2):
+        database.save_submission(
+            category="Electronics",
+            answers=records,
+            final_reason="Item is defective / not working",
+            product_id="soundmax-x200",
+            product_model="SoundMax X200 Headphones",
+            db_path=temp_db,
+        )
+
+    resp = seller_client.get("/investigation-data")
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    prod = next(p for p in data["products"] if p["product_id"] == "soundmax-x200")
+    assert prod["total_returns"] == 2
+    assert prod["units_sold"] == 4200
+    # 2 / 4200 * 100 ~= 0.05%
+    assert abs(prod["return_rate_pct"] - round(2 / 4200 * 100, 2)) < 1e-6
+
+    # The specific problem is surfaced with a count and a defect rate.
+    issue = next(i for i in prod["issues"] if i["problem"] == "Won't power on")
+    assert issue["count"] == 2
+    assert issue["share_of_returns_pct"] == 100.0
+
+    # A category average is available for comparison (keyed by category id).
+    assert "electronics" in data["category_avg_defect_rate"]
+    assert prod["category_name"] == "Electronics"

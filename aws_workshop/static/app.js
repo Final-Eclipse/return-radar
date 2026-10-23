@@ -12,12 +12,17 @@
     category: null,        // selected category id
     categoryName: null,    // human-readable name
     answers: {},           // question_id -> answer value
+    productId: null,       // selected product id (optional)
     currentQuestion: null, // the question object currently shown
     questionCount: 0,      // how many questions answered (for progress)
   };
 
   // Elements
   const categoryStep = document.getElementById("category-step");
+  const productStep = document.getElementById("product-step");
+  const productSelect = document.getElementById("product-select");
+  const productNextBtn = document.getElementById("product-next-btn");
+  const productBackBtn = document.getElementById("product-back-btn");
   const questionStep = document.getElementById("question-step");
   const doneStep = document.getElementById("done-step");
   const questionContainer = document.getElementById("question-container");
@@ -27,6 +32,7 @@
   const formStatus = document.getElementById("form-status");
   const progressText = document.getElementById("progress-text");
   const progressFill = document.getElementById("progress-fill");
+  const progressBar = document.getElementById("progress-bar");
 
   // ---- API helpers -------------------------------------------------------
   async function postJSON(url, body) {
@@ -56,15 +62,68 @@
 
       state.category = btn.dataset.categoryId;
       state.categoryName = btn.dataset.categoryName;
+      state.productId = null;
       state.answers = {};
       state.questionCount = 0;
 
-      startQuestionnaire();
+      showProductStep();
     });
+  });
+
+  // ---- Product selection -------------------------------------------------
+  async function showProductStep() {
+    categoryStep.classList.add("hidden");
+    questionStep.classList.add("hidden");
+    doneStep.classList.add("hidden");
+    productStep.classList.remove("hidden");
+
+    productSelect.innerHTML = '<option value="">Loading products&hellip;</option>';
+    productNextBtn.disabled = true;
+
+    try {
+      const res = await fetch(
+        "/products?category=" + encodeURIComponent(state.category)
+      );
+      const list = await res.json();
+      let opts = '<option value="">Choose a product&hellip;</option>';
+      (list || []).forEach(function (p) {
+        opts += '<option value="' + p.id + '">' + escapeHtml(p.model) + "</option>";
+      });
+      // Allow completing without naming a product, in case theirs isn't listed.
+      opts += '<option value="__other__">My product isn\'t listed</option>';
+      productSelect.innerHTML = opts;
+    } catch (err) {
+      productSelect.innerHTML =
+        '<option value="__other__">Continue without selecting</option>';
+    }
+
+    productSelect.focus();
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  productSelect.addEventListener("change", function () {
+    productNextBtn.disabled = productSelect.value === "";
+  });
+
+  productNextBtn.addEventListener("click", function () {
+    const val = productSelect.value;
+    state.productId = val && val !== "__other__" ? val : null;
+    startQuestionnaire();
+  });
+
+  productBackBtn.addEventListener("click", function () {
+    productStep.classList.add("hidden");
+    categoryStep.classList.remove("hidden");
   });
 
   async function startQuestionnaire() {
     categoryStep.classList.add("hidden");
+    productStep.classList.add("hidden");
     doneStep.classList.add("hidden");
     questionStep.classList.remove("hidden");
     await loadNextQuestion();
@@ -83,13 +142,13 @@
         await finish();
         return;
       }
-      renderQuestion(data.question);
+      renderQuestion(data.question, data.progress);
     } catch (err) {
       setStatus("Sorry, something went wrong loading the next question.");
     }
   }
 
-  function renderQuestion(question) {
+  function renderQuestion(question, progress) {
     state.currentQuestion = question;
     state.questionCount += 1;
 
@@ -155,18 +214,41 @@
 
     nextBtn.disabled = !state.answers[question.id];
 
-    updateProgress();
+    updateProgress(progress);
 
     // Focus the legend/group so AT reads the new question.
     legend.setAttribute("tabindex", "-1");
     legend.focus();
   }
 
-  function updateProgress() {
-    progressText.textContent = "Question " + state.questionCount;
-    // Soft progress heuristic: typical flow is ~3-4 questions.
-    const pct = Math.min(100, Math.round((state.questionCount / 4) * 100));
+  // Render the progress bar from the backend-provided progress object.
+  // `progress.step` is how many questions are already answered and `total`
+  // is the estimated length of the current (adaptive) path. While a question
+  // is on screen we show it as "current of total" so the bar advances as the
+  // customer moves toward the end.
+  function updateProgress(progress) {
+    const total = progress && progress.total ? progress.total : 1;
+    const current = Math.min((progress ? progress.step : 0) + 1, total);
+    const pct = Math.round((current / total) * 100);
+
+    progressText.textContent = "Question " + current + " of " + total;
     progressFill.style.width = pct + "%";
+
+    // Drive the segment dividers to match the number of questions in the
+    // path so the bar reads as `total` discrete steps.
+    if (progressBar) {
+      progressBar.style.setProperty("--segments", String(total));
+    }
+
+    // Expose progress to assistive tech on the progress bar element.
+    if (progressBar) {
+      progressBar.setAttribute("aria-valuenow", String(current));
+      progressBar.setAttribute("aria-valuemax", String(total));
+      progressBar.setAttribute(
+        "aria-valuetext",
+        "Question " + current + " of " + total
+      );
+    }
   }
 
   // ---- Next / submit -----------------------------------------------------
@@ -188,6 +270,7 @@
     try {
       await postJSON("/submit", {
         category: state.category,
+        product_id: state.productId,
         answers: state.answers,
       });
       questionStep.classList.add("hidden");
@@ -203,17 +286,20 @@
   function resetToStart() {
     state.category = null;
     state.categoryName = null;
+    state.productId = null;
     state.answers = {};
     state.currentQuestion = null;
     state.questionCount = 0;
     questionContainer.innerHTML = "";
     progressFill.style.width = "0%";
     nextBtn.disabled = true;
+    productNextBtn.disabled = true;
 
     document.querySelectorAll(".category-btn").forEach(function (b) {
       b.setAttribute("aria-pressed", "false");
     });
 
+    productStep.classList.add("hidden");
     questionStep.classList.add("hidden");
     doneStep.classList.add("hidden");
     categoryStep.classList.remove("hidden");

@@ -482,16 +482,58 @@ def get_next_question(category, answers):
 
     answers = answers or {}
     nodes = QUESTION_TREE[category]
+    progress = get_progress(category, answers)
 
     for node, show_if in nodes:
         if show_if(answers) and node["id"] not in answers:
-            return {"done": False, "question": node}
+            return {"done": False, "question": node, "progress": progress}
 
     # Category branch exhausted; ask the shared closing question once.
     if FINAL_QUESTION["id"] not in answers:
-        return {"done": False, "question": FINAL_QUESTION}
+        return {"done": False, "question": FINAL_QUESTION, "progress": progress}
 
-    return {"done": True}
+    return {"done": True, "progress": progress}
+
+
+def get_progress(category, answers):
+    """Compute progress through the questionnaire for the current branch.
+
+    Because the flow is adaptive, the total number of questions depends on the
+    answers given so far. We count:
+      - answered: questions in this path the customer has already answered
+      - remaining: questions still applicable given the current answers
+    and derive a total + 1-based step so the frontend can render an accurate bar.
+
+    Returns:
+        {"step": int, "total": int, "percent": int}
+        where `step` is how many questions have been answered (0-based count),
+        `total` is the best current estimate of the full path length, and
+        `percent` is step/total as an integer 0..100.
+    """
+    if not is_valid_category(category):
+        raise ValueError(f"Unknown category: {category!r}")
+
+    answers = answers or {}
+    nodes = QUESTION_TREE[category]
+
+    answered = 0
+    remaining = 0
+    for node, show_if in nodes:
+        if show_if(answers):
+            if node["id"] in answers:
+                answered += 1
+            else:
+                remaining += 1
+
+    # Account for the shared closing question, which applies to every path.
+    if FINAL_QUESTION["id"] in answers:
+        answered += 1
+    else:
+        remaining += 1
+
+    total = answered + remaining
+    percent = int(round((answered / total) * 100)) if total else 0
+    return {"step": answered, "total": total, "percent": percent}
 
 
 def _label_for(question, value):

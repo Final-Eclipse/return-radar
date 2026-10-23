@@ -138,7 +138,13 @@
 
   async function load() {
     try {
-      const res = await fetch("/stats");
+      const res = await fetch("/stats", {
+        headers: { Accept: "application/json" },
+      });
+      if (res.status === 401) {
+        window.location.href = "/login?next=/dashboard";
+        return;
+      }
       const data = await res.json();
       renderStatCards(data);
       renderCharts(data);

@@ -55,6 +55,34 @@
       </ul>
     </section>
 
+    <!-- Step 1b: product selection (populated after a category is chosen) -->
+    <section
+      class="card hidden"
+      id="product-step"
+      aria-labelledby="product-step-heading"
+    >
+      <h2 class="section-title" id="product-step-heading">
+        Which product are you returning?
+      </h2>
+      <div class="form-field">
+        <label for="product-select">Select the product</label>
+        <select id="product-select" aria-describedby="product-step-hint">
+          <option value="">Choose a product&hellip;</option>
+        </select>
+        <p class="form-hint" id="product-step-hint">
+          Pick the model you're returning so the seller can pinpoint the issue.
+        </p>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" id="product-back-btn">
+          Back
+        </button>
+        <button type="button" class="btn btn-primary" id="product-next-btn" disabled>
+          Continue
+        </button>
+      </div>
+    </section>
+
     <!-- Step 2: adaptive questionnaire -->
     <section
       class="card question-shell hidden"
@@ -65,9 +93,17 @@
         Return questionnaire
       </h2>
 
-      <p class="progress" aria-hidden="true">
+      <p class="progress">
         <span id="progress-text">Question 1</span>
-        <span class="progress-track">
+        <span
+          class="progress-track"
+          id="progress-bar"
+          role="progressbar"
+          aria-label="Questionnaire progress"
+          aria-valuemin="1"
+          aria-valuenow="1"
+          aria-valuemax="1"
+        >
           <span class="progress-fill" id="progress-fill"></span>
         </span>
       </p>

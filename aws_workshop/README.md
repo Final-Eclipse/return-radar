@@ -34,8 +34,30 @@ python app.py
 
 Then open http://localhost:5000
 
-- **/** — customer questionnaire
-- **/dashboard** — seller dashboard
+- **/** — customer questionnaire (public)
+- **/login** — seller sign in (demo password: `seller123`)
+- **/dashboard** — seller dashboard (seller only)
+- **/investigation** — issue investigation (seller only)
+
+### Seller access
+
+The dashboard and issue investigation pages are gated behind a simple
+session-based login. Sign in at `/login` with the demo password `seller123`
+(override via the `RETURN_RADAR_SELLER_PASSWORD` environment variable).
+
+> This is demo-grade access control — a single shared seller password with a
+> signed session cookie. It genuinely gates the seller-only pages and APIs
+> (customers get redirected / receive 401), but it is not production auth.
+
+### Issue investigation
+
+For each product that has returns, the investigation page shows:
+
+- the **total number of customers** reporting each specific problem,
+- the **defect rate** — returns with that problem as a percentage of
+  **units sold** (real volume data lives in `products.py`), and
+- a **comparison** of the model's overall return rate against its category
+  average and its sibling models, with a plain-language verdict.
 
 ## How the adaptive flow works
 
@@ -50,20 +72,23 @@ Then open http://localhost:5000
 ## Project layout
 
 ```
-app.py            Flask app: pages + API endpoints
-questions.py      Product categories + adaptive question engine
-database.py       SQLite schema and data-access layer
-seed.py           Loads sample submissions for a demo
-templates/        index.html (questionnaire), dashboard.html
-static/           style.css, app.js (questionnaire), dashboard.js
-test_app.py       Tests for DB, engine, and endpoints
+app.py             Flask app: pages + API endpoints + seller auth
+questions.py       Product categories + adaptive question engine
+products.py        Product catalog (model, category, units_sold)
+database.py        SQLite schema and data-access layer
+seed.py            Loads sample submissions for a demo
+templates/         index.html, login.html, dashboard.html, investigation.html
+static/            style.css, app.js, dashboard.js, investigation.js
+test_app.py        Tests for DB, engine, endpoints, auth, and investigation
 ```
 
 ## Data model (SQLite)
 
-- `submissions`: `id`, `category`, `created_at`, `final_reason`
+- `submissions`: `id`, `category`, `created_at`, `final_reason`,
+  `product_id`, `product_model`
 - `answers`: `id`, `submission_id` (FK → submissions), `question_id`,
   `question_text`, `answer_value`
+- `products`: `id`, `model`, `category`, `units_sold`
 
 ## Accessibility
 
