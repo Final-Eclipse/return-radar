@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Return Radar - Seller sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">&#128225;</span>
+      <span>
+        Return Radar
+        <span class="tagline">Understand every return</span>
+      </span>
+    </div>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="{{ url_for('index') }}">Questionnaire</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <h1>Seller sign in</h1>
+      <p class="lede">
+        The dashboard and issue investigation tools are for sellers only.
+        Please sign in to continue.
+      </p>
+    </section>
+
+    <section class="card" style="max-width: 440px;" aria-labelledby="login-heading">
+      <h2 class="section-title" id="login-heading">Sign in</h2>
+
+      {% if error %}
+      <p class="login-error" role="alert">{{ error }}</p>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('login') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}" novalidate>
+        <div class="form-field">
+          <label for="password">Seller password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            aria-describedby="login-hint"
+          />
+          <p class="form-hint" id="login-hint">
+            Demo password: <code>seller123</code>
+          </p>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Sign in</button>
+          <a class="btn btn-ghost" href="{{ url_for('index') }}">Back to questionnaire</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Return Radar &middot; Adaptive return feedback, built with Kiro
+  </footer>
+</body>
+</html>

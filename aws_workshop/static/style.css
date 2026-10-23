@@ -468,3 +468,121 @@ footer.site-footer {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------- Login form ---------------- */
+.form-field {
+  margin-bottom: 1.1rem;
+}
+.form-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.form-field input[type="password"],
+.form-field input[type="text"],
+.form-field select {
+  width: 100%;
+  font: inherit;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.form-field input:focus-visible,
+.form-field select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.form-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0;
+}
+.form-hint code,
+code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.9em;
+}
+.login-error {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid var(--danger);
+  color: #ffd2d2;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+
+/* ---------------- Issue investigation ---------------- */
+.muted-line {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin: 0 0 1rem;
+}
+
+.issue-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.9rem;
+}
+.issue-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.issue-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.issue-count {
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.issue-defect {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+.issue-defect strong {
+  color: var(--text);
+}
+
+/* Comparison bar variants */
+.bar-fill-strong {
+  background: linear-gradient(90deg, #ff9f1c, var(--accent));
+}
+.bar-fill-avg {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--text-muted),
+    var(--text-muted) 6px,
+    #8a95ab 6px,
+    #8a95ab 12px
+  );
+}
+
+.verdict {
+  border-radius: 10px;
+  padding: 0.75rem 0.95rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.verdict.worse {
+  border-color: var(--danger);
+  background: rgba(255, 107, 107, 0.1);
+}
+.verdict.better {
+  border-color: var(--success);
+  background: rgba(56, 211, 159, 0.1);
+}
